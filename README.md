@@ -37,6 +37,10 @@ This tool automates the hardening of an AWS EC2 instance's network access. It dy
     uv sync
     ```
 
+## Configuration
+
+- **Home IP**: The script contains a hardcoded `HOME_IP` constant (Requirement 1.a). Ensure this matches your current public IP address in `main.py` before running.
+
 ## Usage
 
 1.  **Run the script**:
@@ -64,6 +68,7 @@ This tool automates the hardening of an AWS EC2 instance's network access. It dy
 ## Output
 
 The script provides detailed logging:
+- Detected Home IP.
 - Detected environment (Region, SG ID).
 - Number of Cloudflare ranges found.
 - Planned changes (adds/removes).
