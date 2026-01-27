@@ -166,9 +166,23 @@ class SecurityGroupSync:
             self.yaml_data = yaml.safe_load(f)
         logger.info("Loaded YAML configuration.")
 
+    def pull_latest_changes(self):
+        """Pull latest changes from git."""
+        if self.dry_run:
+             return
+        
+        try:
+            logger.info("Git: Pulling latest changes from origin to ensure clean state...")
+            self.repo.remotes.origin.pull()
+        except Exception as e:
+            logger.warning(f"Git Warning: Initial pull failed: {e}")
+
     def run(self):
         # Log the home IP as per acceptance criteria
         logger.info(f"Detected home IP: {self.home_ip_cidr}")
+
+        # Ensure we have the latest code/config from the repo before doing anything
+        self.pull_latest_changes()
 
         # 1. Init AWS Context
         # Note: We retrieve Region first to init boto3 client
@@ -306,12 +320,9 @@ class SecurityGroupSync:
              logger.info("Git operations disabled (DRY RUN).")
              return
 
-        try:
-            logger.info("Git: Pulling latest changes from origin used for the script...")
-            self.repo.remotes.origin.pull()
-        except Exception as e:
-            # This might fail if auth isn't set up or upstream is missing
-            logger.warning(f"Git Warning: Pull failed (continuing): {e}")
+        # Note: We already pulled at the start of run(). 
+        # But if the execution took a long time, we might want to pull again here if we implemented complex merging logic.
+        # For this assignment, assuming the repo is only touched by this script, the initial pull is sufficient.
 
         if self.repo.is_dirty(untracked_files=True):
             logger.info("Git: Changes detected. Committing...")
