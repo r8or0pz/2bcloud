@@ -167,6 +167,9 @@ class SecurityGroupSync:
         logger.info("Loaded YAML configuration.")
 
     def run(self):
+        # Log the home IP as per acceptance criteria
+        logger.info(f"Detected home IP: {self.home_ip_cidr}")
+
         # 1. Init AWS Context
         # Note: We retrieve Region first to init boto3 client
         self.region = self.get_instance_region()
