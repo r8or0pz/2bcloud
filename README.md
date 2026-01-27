@@ -13,7 +13,11 @@ This tool automates the hardening of an AWS EC2 instance's network access. It dy
 ## Prerequisites
 
 - **Python 3.9+**
-- **uv**: This project uses `uv` for dependency management. [Install uv](https://docs.astral.sh/uv/getting-started/installation/) if not already installed.
+- **uv**: This project uses `uv` for dependency management.
+  ```bash
+  curl -LsSf https://astral.sh/uv/install.sh | sh
+  source $HOME/.local/bin/env
+  ```
 - **git**: Installed and configured on the instance.
 - **IAM Role**: The EC2 instance must have an IAM role with permissions to:
   - `ec2:DescribeSecurityGroups`
@@ -35,15 +39,15 @@ This tool automates the hardening of an AWS EC2 instance's network access. It dy
 
 ## Usage
 
-1.  **Configure Home IP**:
-    Edit `main.py` and set the `HOME_IP` constant to your current public IP address.
-    ```python
-    HOME_IP = "YOUR.IP.ADD.RESS"
-    ```
-
-2.  **Run the script**:
+1.  **Run the script**:
     ```bash
     uv run main.py
+    ```
+
+    **Dry Run Mode:**
+    To preview changes without applying them to AWS or Git:
+    ```bash
+    uv run main.py --dry-run
     ```
 
 ## How It Works
