@@ -294,6 +294,9 @@ class SecurityGroupSync:
             logger.info("Skipping YAML update (DRY RUN). Expected YAML content:")
             print("\n" + yaml.dump(self.yaml_data, sort_keys=False) + "\n")
             return
+
+        with open(YAML_FILE, 'w') as f:
+            yaml.dump(self.yaml_data, f, sort_keys=False)
         logger.info(f"Updated {YAML_FILE}.")
 
     def git_commit_push(self):
