@@ -1,0 +1,6 @@
+name: security-group
+rules:
+  ssh:
+  - 0.0.0.0/0
+  http:
+  - 212.199.143.34/32
