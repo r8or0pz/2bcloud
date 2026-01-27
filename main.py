@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # --- Constants ---
 # Requirement 1.a: Your current home/public IP is a constant (CIDR /32)
 # REPLACE THIS with your actual IP if running locally or pass it in.
-HOME_IP = "192.168.1.1"
+HOME_IP = "143.244.46.229"
 HOME_IP_CIDR = f"{HOME_IP}/32"
 
 YAML_FILE = "security-group.yaml"
