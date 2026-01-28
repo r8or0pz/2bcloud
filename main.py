@@ -304,13 +304,26 @@ class SecurityGroupSync:
         sorted_cidrs = sorted(list(desired_cidrs))
         self.yaml_data['rules']['http'] = sorted_cidrs
 
+        # Generate the new YAML string
+        new_yaml_content = yaml.dump(self.yaml_data, sort_keys=False)
+
         if self.dry_run:
             logger.info("Skipping YAML update (DRY RUN). Expected YAML content:")
-            print("\n" + yaml.dump(self.yaml_data, sort_keys=False) + "\n")
+            print("\n" + new_yaml_content + "\n")
             return
 
+        # Check if file has changed to avoid unnecessary writes/logs
+        try:
+            with open(YAML_FILE, 'r') as f:
+                current_content = f.read()
+            if current_content == new_yaml_content:
+                logger.info(f"{YAML_FILE} is already up-to-date.")
+                return
+        except FileNotFoundError:
+            pass # File doesn't exist, so we must write it
+
         with open(YAML_FILE, 'w') as f:
-            yaml.dump(self.yaml_data, f, sort_keys=False)
+            f.write(new_yaml_content)
         logger.info(f"Updated {YAML_FILE}.")
 
     def git_commit_push(self):
