@@ -1,3 +1,16 @@
+"""
+EC2 Security Group Sync Tool.
+
+This script automates the hardening of an EC2 Security Group by syncing HTTP rules
+with a user's home IP and Cloudflare's published IP ranges.
+
+Key Features:
+- Determining AWS environment (Region, SG) via IMDSv2.
+- Fetching dynamic Cloudflare ranges.
+- Idempotent SG updates: only adds/removes differences.
+- GitOps: Commits state changes to a local YAML file and pushes to a remote repo.
+"""
+
 import os
 import sys
 import yaml
@@ -30,7 +43,15 @@ EC2_METADATA_TOKEN_URL = "http://169.254.169.254/latest/api/token"
 
 
 class SecurityGroupSync:
+    """
+    Main class handling the logic for synchronization.
+    """
     def __init__(self, home_ip_cidr, dry_run=False):
+        """
+        Initialize the syncer.
+        :param home_ip_cidr: The user's home IP (constant).
+        :param dry_run: If True, skip destructive AWS API calls and git pushes.
+        """
         self.home_ip_cidr = home_ip_cidr
         self.dry_run = dry_run
         self.ec2 = None
@@ -47,7 +68,11 @@ class SecurityGroupSync:
             sys.exit(1)
 
     def get_imds_token(self):
-        """Get IMDSv2 token."""
+        """
+        Get IMDSv2 session token.
+        Required for subsequent metadata requests on EC2.
+        :return: Token string or None.
+        """
         try:
             response = requests.put(
                 EC2_METADATA_TOKEN_URL,
@@ -60,7 +85,11 @@ class SecurityGroupSync:
             return None
 
     def get_instance_region(self):
-        """Determine region dynamically from IMDS."""
+        """
+        Determine the current AWS Region.
+        Uses IMDS first, falls back to boto3 session (local profile).
+        :return: Region name (e.g., 'us-east-1').
+        """
         token = self.get_imds_token()
         headers = {"X-aws-ec2-metadata-token": token} if token else {}
 
@@ -87,7 +116,12 @@ class SecurityGroupSync:
         sys.exit(1)
 
     def get_instance_sg(self):
-        """Determine Security Group ID dynamically."""
+        """
+        Identify the target Security Group.
+        Queries IMDS for MAC -> SG IDs. If multiple exist,
+        filters for the one with SSH access (0.0.0.0/0).
+        :return: Security Group ID (e.g., 'sg-12345').
+        """
         # Method 1: If running on EC2, get MAC, then SG IDs associated with interface 0
         token = self.get_imds_token()
         headers = {"X-aws-ec2-metadata-token": token} if token else {}
@@ -140,7 +174,10 @@ class SecurityGroupSync:
         sys.exit(1)
 
     def fetch_cloudflare_ips(self):
-        """Fetch current Cloudflare IPv4 ranges."""
+        """
+        Fetch the current list of Cloudflare IPv4 CIDRs from their public API.
+        Populates self.cloudflare_cidrs.
+        """
         logger.info("Fetching Cloudflare IP ranges...")
         try:
             resp = requests.get(CLOUDFLARE_API_URL, timeout=10)
@@ -157,7 +194,9 @@ class SecurityGroupSync:
             sys.exit(1)
 
     def read_yaml_config(self):
-        """Read the YAML template."""
+        """
+        Load the local YAML configuration file to memory.
+        """
         if not os.path.exists(YAML_FILE):
             logger.error(f"{YAML_FILE} not found.")
             sys.exit(1)
@@ -167,7 +206,10 @@ class SecurityGroupSync:
         logger.info("Loaded YAML configuration.")
 
     def pull_latest_changes(self):
-        """Pull latest changes from git."""
+        """
+        Execute git pull to ensure the workspace is up-to-date
+        before calculating any changes.
+        """
         if self.dry_run:
              return
 
@@ -178,6 +220,9 @@ class SecurityGroupSync:
             logger.warning(f"Git Warning: Initial pull failed: {e}")
 
     def run(self):
+        """
+        Orchestrate the synchronization process.
+        """
         # Log the home IP as per acceptance criteria
         logger.info(f"Detected home IP: {self.home_ip_cidr}")
 
@@ -215,7 +260,10 @@ class SecurityGroupSync:
         self.git_commit_push()
 
     def sync_sg_rules(self, desired_cidrs):
-        """Sync EC2 Security Group rules for HTTP (80)."""
+        """
+        Calculate and apply the difference between desired and actual SG rules.
+        :param desired_cidrs: Set of IPv4 CIDRs that should be allowed on port 80.
+        """
         try:
             response = self.ec2.describe_security_groups(GroupIds=[self.sg_id])
             sg_permissions = response['SecurityGroups'][0]['IpPermissions']
@@ -295,7 +343,11 @@ class SecurityGroupSync:
              logger.error(f"Error fetching final rule count: {e}")
 
     def update_yaml_file(self, desired_cidrs):
-        """Update the YAML file to reflect current state."""
+        """
+        Update the local security-group.yaml file with the new rule set.
+        Is idempotent - only writes if content changes.
+        :param desired_cidrs: Set of IPv4 CIDRs to write.
+        """
 
         # Modify the in-memory structure regardless of dry-run to show what WOULD happen
         if 'rules' not in self.yaml_data:
@@ -327,7 +379,10 @@ class SecurityGroupSync:
         logger.info(f"Updated {YAML_FILE}.")
 
     def git_commit_push(self):
-        """Commit and push changes."""
+        """
+        Commit changes to the local repo and push to the remote origin.
+        Uses the 'is_dirty' check to avoid empty commits.
+        """
 
         if self.dry_run:
              logger.info("Git operations disabled (DRY RUN).")
