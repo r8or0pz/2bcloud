@@ -10,7 +10,7 @@ sys.path.append(os.getcwd())
 from main import SecurityGroupSync, YAML_FILE
 
 class TestSecurityGroupSync(unittest.TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.home_ip = "1.2.3.4/32"
         # Patch git.Repo so we don't need a real git repo
         with patch('main.git.Repo'):
@@ -19,7 +19,7 @@ class TestSecurityGroupSync(unittest.TestCase):
 
     @patch('main.requests.put')
     @patch('main.requests.get')
-    def test_get_instance_region(self, mock_get, mock_put):
+    def test_get_instance_region(self, mock_get: MagicMock, mock_put: MagicMock) -> None:
         # Mock Token
         mock_put.return_value.status_code = 200
         mock_put.return_value.text = "TOKEN"
@@ -32,7 +32,7 @@ class TestSecurityGroupSync(unittest.TestCase):
         self.assertEqual(region, "us-east-1")
 
     @patch('main.requests.get')
-    def test_fetch_cloudflare_ips(self, mock_get):
+    def test_fetch_cloudflare_ips(self, mock_get: MagicMock) -> None:
         mock_get.return_value.status_code = 200
         mock_get.return_value.json.return_value = {
             "success": True,
@@ -43,7 +43,7 @@ class TestSecurityGroupSync(unittest.TestCase):
         self.assertEqual(len(self.syncer.cloudflare_cidrs), 2)
         self.assertIn("173.245.48.0/20", self.syncer.cloudflare_cidrs)
 
-    def test_sync_sg_rules(self):
+    def test_sync_sg_rules(self) -> None:
         # Setup syncer
         self.syncer.ec2 = MagicMock()
         self.syncer.sg_id = "sg-123"
@@ -76,7 +76,7 @@ class TestSecurityGroupSync(unittest.TestCase):
         # Check Authorize called
         self.syncer.ec2.authorize_security_group_ingress.assert_called_once()
 
-    def test_update_yaml_file_writes_changes(self):
+    def test_update_yaml_file_writes_changes(self) -> None:
         self.syncer.yaml_data = {}
         desired = {"1.1.1.1/32"}
 
@@ -88,7 +88,7 @@ class TestSecurityGroupSync(unittest.TestCase):
         # Check if write was called
         mock_file().write.assert_called()
 
-    def test_update_yaml_file_idempotent(self):
+    def test_update_yaml_file_idempotent(self) -> None:
         self.syncer.yaml_data = {}
         desired = {"1.1.1.1/32"}
         # Pre-calculate expected output
@@ -102,7 +102,7 @@ class TestSecurityGroupSync(unittest.TestCase):
         # Write should NOT be called because content is identical
         mock_file().write.assert_not_called()
 
-    def test_git_operations(self):
+    def test_git_operations(self) -> None:
         # Mock repo is dirty
         self.syncer.repo.is_dirty.return_value = True
 
