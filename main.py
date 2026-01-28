@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 # --- Constants ---
 # Requirement 1.a: Your current home/public IP is a constant (CIDR /32)
 # REPLACE THIS with your actual IP if running locally or pass it in.
-HOME_IP = "143.244.46.116"
+HOME_IP = "94.153.134.142"
 HOME_IP_CIDR = f"{HOME_IP}/32"
 
 YAML_FILE = "security-group.yaml"
@@ -170,7 +170,7 @@ class SecurityGroupSync:
         """Pull latest changes from git."""
         if self.dry_run:
              return
-        
+
         try:
             logger.info("Git: Pulling latest changes from origin to ensure clean state...")
             self.repo.remotes.origin.pull()
@@ -333,7 +333,7 @@ class SecurityGroupSync:
              logger.info("Git operations disabled (DRY RUN).")
              return
 
-        # Note: We already pulled at the start of run(). 
+        # Note: We already pulled at the start of run().
         # But if the execution took a long time, we might want to pull again here if we implemented complex merging logic.
         # For this assignment, assuming the repo is only touched by this script, the initial pull is sufficient.
 
