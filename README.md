@@ -54,6 +54,15 @@ This tool automates the hardening of an AWS EC2 instance's network access. It dy
     uv run main.py --dry-run
     ```
 
+## Testing
+
+The project includes a suite of unit tests to verify core logic (AWS detection, rule calculation, idempotency, etc.).
+
+To run the tests:
+```bash
+uv run python -m unittest test_main.py
+```
+
 ## How It Works
 
 1.  **Context Detection**: The script queries the AWS IMDSv2 to find the instance's Region and MAC address.
