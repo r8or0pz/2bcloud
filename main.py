@@ -20,6 +20,7 @@ import git
 import argparse
 import logging
 from datetime import datetime
+from typing import Optional, Set
 
 # --- Configuration ---
 # Configure logging
@@ -46,7 +47,7 @@ class SecurityGroupSync:
     """
     Main class handling the logic for synchronization.
     """
-    def __init__(self, home_ip_cidr, dry_run=False):
+    def __init__(self, home_ip_cidr: str, dry_run: bool = False) -> None:
         """
         Initialize the syncer.
         :param home_ip_cidr: The user's home IP (constant).
@@ -55,10 +56,10 @@ class SecurityGroupSync:
         self.home_ip_cidr = home_ip_cidr
         self.dry_run = dry_run
         self.ec2 = None
-        self.region = None
-        self.sg_id = None
-        self.cloudflare_cidrs = []
-        self.yaml_data = None
+        self.region: Optional[str] = None
+        self.sg_id: Optional[str] = None
+        self.cloudflare_cidrs: list[str] = []
+        self.yaml_data: dict = {}
 
         # Initialize Git repo
         try:
@@ -67,7 +68,7 @@ class SecurityGroupSync:
             logger.error("Current directory is not a git repository.")
             sys.exit(1)
 
-    def get_imds_token(self):
+    def get_imds_token(self) -> Optional[str]:
         """
         Get IMDSv2 session token.
         Required for subsequent metadata requests on EC2.
@@ -84,7 +85,7 @@ class SecurityGroupSync:
         except requests.RequestException:
             return None
 
-    def get_instance_region(self):
+    def get_instance_region(self) -> str:
         """
         Determine the current AWS Region.
         Uses IMDS first, falls back to boto3 session (local profile).
@@ -115,7 +116,7 @@ class SecurityGroupSync:
         logger.error("Could not determine AWS Region dynamically.")
         sys.exit(1)
 
-    def get_instance_sg(self):
+    def get_instance_sg(self) -> str:
         """
         Identify the target Security Group.
         Queries IMDS for MAC -> SG IDs. If multiple exist,
@@ -173,7 +174,7 @@ class SecurityGroupSync:
         logger.error("Ensure you are running this script on the target EC2 instance as per requirements.")
         sys.exit(1)
 
-    def fetch_cloudflare_ips(self):
+    def fetch_cloudflare_ips(self) -> None:
         """
         Fetch the current list of Cloudflare IPv4 CIDRs from their public API.
         Populates self.cloudflare_cidrs.
@@ -193,7 +194,7 @@ class SecurityGroupSync:
             logger.error(f"Error fetching Cloudflare IPs: {e}")
             sys.exit(1)
 
-    def read_yaml_config(self):
+    def read_yaml_config(self) -> None:
         """
         Load the local YAML configuration file to memory.
         """
@@ -205,7 +206,7 @@ class SecurityGroupSync:
             self.yaml_data = yaml.safe_load(f)
         logger.info("Loaded YAML configuration.")
 
-    def pull_latest_changes(self):
+    def pull_latest_changes(self) -> None:
         """
         Execute git pull to ensure the workspace is up-to-date
         before calculating any changes.
@@ -219,7 +220,7 @@ class SecurityGroupSync:
         except Exception as e:
             logger.warning(f"Git Warning: Initial pull failed: {e}")
 
-    def run(self):
+    def run(self) -> None:
         """
         Orchestrate the synchronization process.
         """
@@ -259,7 +260,7 @@ class SecurityGroupSync:
         # 6. Git Operations
         self.git_commit_push()
 
-    def sync_sg_rules(self, desired_cidrs):
+    def sync_sg_rules(self, desired_cidrs: Set[str]) -> None:
         """
         Calculate and apply the difference between desired and actual SG rules.
         :param desired_cidrs: Set of IPv4 CIDRs that should be allowed on port 80.
@@ -342,7 +343,7 @@ class SecurityGroupSync:
         except Exception as e:
              logger.error(f"Error fetching final rule count: {e}")
 
-    def update_yaml_file(self, desired_cidrs):
+    def update_yaml_file(self, desired_cidrs: Set[str]) -> None:
         """
         Update the local security-group.yaml file with the new rule set.
         Is idempotent - only writes if content changes.
@@ -378,7 +379,7 @@ class SecurityGroupSync:
             f.write(new_yaml_content)
         logger.info(f"Updated {YAML_FILE}.")
 
-    def git_commit_push(self):
+    def git_commit_push(self) -> None:
         """
         Commit changes to the local repo and push to the remote origin.
         Uses the 'is_dirty' check to avoid empty commits.
